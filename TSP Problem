@@ -1,0 +1,132 @@
+// Travelling Salesman Problem for Optimal Path and Cost
+
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <limits>
+#include <iomanip>
+
+using namespace std;
+
+// Function to handle robust integer input
+int getIntInput(const string& prompt) {
+    int value;
+    cout << prompt;
+    // Loop until a valid, non-negative integer is entered
+    while (!(cin >> value) || value < 0) {
+        cout << "Invalid input. Please enter a non-negative number: ";
+        cin.clear(); // Clear error flags
+        cin.ignore(10000, '\n'); // Discard bad input
+    }
+    return value;
+}
+
+// Function to get the cost matrix from the user
+vector<vector<int>> getCostMatrix(int n) {
+    cout << "\n--- Enter the Cost Matrix (Cost from City i to City j) ---\n";
+    cout << "Use 0 for the cost from a city to itself.\n";
+
+    vector<vector<int>> cost(n, vector<int>(n));
+
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < n; ++j) {
+            if (i == j) {
+                cost[i][j] = 0;
+                cout << "Cost from City " << i + 1 << " to City " << j + 1 << " (set to 0): 0\n";
+            } else {
+                cost[i][j] = getIntInput("Cost from City " + to_string(i + 1) + " to City " + to_string(j + 1) + ": ");
+                // Ensure cost is non-negative
+                if (cost[i][j] < 0) cost[i][j] = numeric_limits<int>::max(); 
+            }
+        }
+    }
+    return cost;
+}
+
+// Function to solve TSP using the Nearest Neighbor Heuristic
+void solveTSP_NearestNeighbor(const vector<vector<int>>& cost, int n) {
+    if (n <= 1) {
+        cout << "\nRequires at least 2 cities to form a tour.\n";
+        return;
+    }
+    
+    // Nearest Neighbor often starts from city 1 (index 0).
+    int startNode = 0; 
+    
+    // Keep track of visited cities
+    vector<bool> visited(n, false);
+    vector<int> path;
+    int currentCity = startNode;
+    long long totalCost = 0; // Use long long in case costs sum up high
+
+    visited[currentCity] = true;
+    path.push_back(currentCity + 1); // Store City ID (1-based)
+
+    // Traverse N-1 edges
+    for (int i = 0; i < n - 1; ++i) {
+        int nearestCity = -1;
+        int minCost = numeric_limits<int>::max();
+
+        // Find the nearest unvisited neighbor
+        for (int nextCity = 0; nextCity < n; ++nextCity) {
+            if (!visited[nextCity] && cost[currentCity][nextCity] > 0 && cost[currentCity][nextCity] < minCost) {
+                minCost = cost[currentCity][nextCity];
+                nearestCity = nextCity;
+            }
+        }
+
+        if (nearestCity != -1) {
+            totalCost += minCost;
+            currentCity = nearestCity;
+            visited[currentCity] = true;
+            path.push_back(currentCity + 1);
+        } else {
+            // Should not happen in a complete graph, but handles errors
+            cout << "\nError: Cannot find a path. Graph might be disconnected.\n";
+            return;
+        }
+    }
+    
+    // Complete the tour by returning to the starting city
+    int costToReturn = cost[currentCity][startNode];
+    if (costToReturn > 0) {
+        totalCost += costToReturn;
+        path.push_back(startNode + 1);
+    } else {
+        // This indicates the path back is blocked or zero
+        cout << "\nError: Cannot return to the starting city (" << startNode + 1 << ").\n";
+        return;
+    }
+
+    // --- Output Results ---
+    cout << "\n--- Travelling Salesman Problem's Result (Nearest Neighbor Heuristic) ---\n";
+    cout << "Optimal Path found: ";
+    for (size_t i = 0; i < path.size(); ++i) {
+        cout << path[i];
+        if (i < path.size() - 1) {
+            cout << " -> ";
+        }
+    }
+    cout << "\nTotal Cost of Tour: " << totalCost << "\n";
+}
+
+int main() {
+    cout << "\n===============================================\n";
+    cout << "  Traveling Salesman Problem (Nearest Neighbor)  \n";
+    cout << "=================================================\n";
+
+    int numCities = getIntInput("Enter the number of cities (N > 1): ");
+
+    if (numCities <= 1) {
+        cout << "Terminating. Number of cities must be greater than 1.\n";
+        return 0;
+    }
+
+    // Get the matrix from user input
+    vector<vector<int>> costMatrix = getCostMatrix(numCities);
+
+    // Solve and display the result
+    solveTSP_NearestNeighbor(costMatrix, numCities);
+
+    return 0;
+}
